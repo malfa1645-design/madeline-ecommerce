@@ -53,9 +53,11 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose, items, onUpdateQuantity, o
         customerPhone: checkoutForm.phone,
         customerAddress: checkoutForm.address,
         customerCity: checkoutForm.city,
-        orderDate: new Date().toLocaleString('ar-EG'),
-        // إذا أردت إرسال المنتجات الموجودة في السلة أيضاً:
-        // items: items 
+         // إضافة اسم المنتج (سيجمع كل أسماء المنتجات في السلة ويفصل بينهم بفاصلة)
+        products: items.map(item => item.name).join(', '), 
+        // إضافة المبلغ الإجمالي
+        totalAmount: total, 
+        orderDate: new Date().toLocaleString('ar-SA'),
       }),
     }).catch(err => console.error("Error sending to n8n:", err));
     // --------------------------------
