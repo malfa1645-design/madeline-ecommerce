@@ -11,7 +11,7 @@ const productsInfo = products.map(p => {
 const systemPrompt = `أنت مساعد ذكي لمتجر Madeleine. إليك المنتجات:\n${productsInfo}\n\nقواعد: أجب بالعربي فقط. لا تخترع معلومات.`;
 
 export async function getGeminiResponse(userMessage: string): Promise<string> {
-  const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+ const API_KEY = (import.meta as any).env.VITE_GEMINI_API_KEY;
 
   if (!API_KEY) {
     return 'عذراً، هناك مشكلة في الإعدادات.';

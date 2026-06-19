@@ -1,226 +1,147 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Bot, User, Loader2, Sparkles, ShoppingBag, HelpCircle, Info, Zap, } from 'lucide-react';
-import { sendToGemini } from '../services/gemini';
+import { useState, useEffect, useRef } from 'react';
+import { products } from '../data/products';
+import { getGeminiResponse } from '../services/gemini';
 
-interface Message {
-id: string;
-text: string;
-sender: 'user' | 'bot';
-timestamp: Date;
-}
-
-const QUICK_REPLIES = [
-{ icon: ShoppingBag, text: 'ما هي المنتجات المتوفرة؟' },
-{ icon: Info, text: 'ما هي الأسعار؟' },
-{ icon: Sparkles, text: 'هل هناك عروض خاصة؟' },
-{ icon: HelpCircle, text: 'كيف يمكنني الطلب؟' },
-];
-
-const Chatbot: React.FC = () => {
-const [isOpen, setIsOpen] = useState(false);
-const [input, setInput] = useState('');
-const [messages, setMessages] = useState<Message[]>([
-{
-id: '1',
-text: 'أهلاً بك في مادلين بيوتي! 🌸 أنا مادلين، مساعدتك الذكية. كيف يمكنني مساعدتك اليوم؟ ✨',
-sender: 'bot',
-timestamp: new Date(),
-},
-]);
-const [isTyping, setIsTyping] = useState(false);
-const messagesEndRef = useRef<HTMLDivElement>(null);
-
-const scrollToBottom = () => {
-messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+// تعريف نوع الرسائل لعدم ظهور اخطاء TypeScript
+type Message = {
+  text: string;
+  sender: 'user' | 'bot';
 };
 
-useEffect(() => {
-scrollToBottom();
-}, [messages, isTyping]);
+export default function Chatbot() {
+  // حالات التحكم بالشات
+  const [isOpen, setIsOpen] = useState(false);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    // رسالة ترحيب اولية تظهر فور فتح الشات
+    { text: 'مرحباً! 🤍 أنا مساعدتك في متجر Madeleine، كيف أقدر اساعدك اليوم؟', sender: 'bot' }
+  ]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-const handleSend = async (customText?: string) => {
-const textToSend = customText || input.trim();
-if (!textToSend) return;
+  // تمرير تلقائي لاخر رسالة جديدة
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
 
-Text 
+  // وظيفة معالجة ارسال الرسائل والرد
+  const handleSendMessage = async () => {
+    if (!input.trim()) return;
+    const userQuestion = input.trim();
+    setInput('');
 
-const userMessage: Message = {
-  id: Date.now().toString(),
-  text: textToSend,
-  sender: 'user',
-  timestamp: new Date(),
-};
+    // اضافة سؤال العميل للشاشة
+    setMessages(prev => [...prev, { text: userQuestion, sender: 'user' }]);
+    setIsTyping(true);
 
-setMessages(prev => [...prev, userMessage]);
-setInput('');
-setIsTyping(true);
+    try {
+      // 🔍 البحث تلقائيا اذا كان العميل يسأل عن منتج موجود
+      const askedProduct = products.find(product =>
+        userQuestion.toLowerCase().includes(product.name.toLowerCase().split('-')[0])
+        || userQuestion.toLowerCase().includes(product.id.replace('-', ' '))
+      );
 
-// إرسال الرسالة لـ Gemini مباشرة
-const botReply = await sendToGemini(
-  textToSend,
-  [...messages, userMessage].map(m => ({ role: m.sender, content: m.text }))
-);
+      let aiPrompt = '';
+      if (askedProduct) {
+        // اذا وجد المنتج، نعطي الذكاء الاصطناعي كل بياناته الحقيقية
+        aiPrompt = `
+          انت مساعدة لطيفة جداً في متجر مادلين لمنتجات العناية، اجبي باللهجة العامية البسيطة غير الرسمية.
+          اجبي على سؤال العميل بناء على البيانات التالية فقط، لا تختاري معلومات وهمية:
+          ---
+          اسم المنتج: ${askedProduct.name}
+          السعر: ${askedProduct.price}
+          الوصف: ${askedProduct.description}
+          المميزات: ${askedProduct.features.join('، ')}
+          ${askedProduct.howToUse ? `طريقة الاستخدام: ${askedProduct.howToUse.join('، ')}` : ''}
+          ---
+          سؤال العميل: ${userQuestion}
+          ابدا الاجابة بترحيب، واذكري الفوائد بشكل بسيط.
+        `;
+      } else {
+        // اذا السؤال ليس عن منتج محدد، رد بشكل طبيعي
+        aiPrompt = `
+          انت مساعدة ودودة في متجر مادلين للعناية بالجمال.
+          سؤال العميل: ${userQuestion}
+          اذا سأل عن منتج غير موجود، اخبريه ان المنتجات المتوفرة حاليا هي: سيروم الأظافر، سيروم الرموش والحواجب، وجل الحواجب.
+          اجبي بلغة عربية راقية ولطيفة.
+        `;
+      }
 
-setIsTyping(false);
-setMessages(prev => [
-  ...prev,
-  {
-    id: Date.now().toString(),
-    text: botReply,
-    sender: 'bot',
-    timestamp: new Date(),
-  },
-]);
-};
+      // اخذ الرد من Gemini
+      const botAnswer = await getGeminiResponse(aiPrompt);
+      setMessages(prev => [...prev, { text: botAnswer, sender: 'bot' }]);
 
-const handleKeyPress = (e: React.KeyboardEvent) => {
-if (e.key === 'Enter' && !e.shiftKey) {
-e.preventDefault();
-handleSend();
-}
-};
+    } catch (error) {
+      setMessages(prev => [...prev, { text: 'عذراً حدث خطأ بسيط، الرجاء اعادة ارسال سؤالك 🤍', sender: 'bot' }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
 
-return (
-<>
-{/* زر التشغيل العائد */}
-<button
-onClick={() => setIsOpen(!isOpen)}
-className="fixed bottom-6 left-6 z-50 w-16 h-16 bg-gold rounded-full shadow-2xl flex items-center justify-center text-black hover:scale-110 transition-transform hover:rotate-12 duration-300 group"
-aria-label="شات مادلين"
->
-{isOpen ? (
-<X size={28} strokeWidth={2.5} />
-) : (
-<>
-<MessageCircle size={28} strokeWidth={2.5} />
-<span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse" />
-</>
-)}
-</button>
-
-text
-
-  {/* نافذة الشات */}
-  {isOpen && (
-    <div className="fixed bottom-24 left-6 z-50 w-[90vw] max-w-md h-[600px] max-h-[80vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 animate-in slide-in-from-bottom-8 fade-in duration-300">
-      {/* الرأس */}
-      <div className="bg-black text-white p-5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gold rounded-full flex items-center justify-center text-black">
-            <Bot size={24} strokeWidth={2.5} />
-          </div>
-          <div>
-            <h3 className="font-bold text-lg">مادلين</h3>
-            <div className="flex items-center gap-2 text-xs text-gray-300">
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span className="flex items-center gap-1">
-                <Zap size={10} className="text-gold" />
-                نظام AI نشط
-              </span>
-            </div>
-          </div>
-        </div>
+  return (
+    <div className="fixed bottom-5 right-5 z-[100]" dir="rtl">
+      {/* زر فتح الشات العائم */}
+      {!isOpen && (
         <button
-          onClick={() => setIsOpen(false)}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors"
+          onClick={() => setIsOpen(true)}
+          className="bg-black text-white w-14 h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-all"
         >
-          <X size={20} />
+          💬
         </button>
-      </div>
+      )}
 
-      {/* منطقة الرسائل */}
-      <div className="flex-grow overflow-y-auto p-5 space-y-4 bg-gray-50">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex gap-3 ${msg.sender === 'user' ? 'justify-start' : 'justify-end'}`}
-          >
-            {msg.sender === 'user' && (
-              <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center shrink-0 mt-1">
-                <User size={14} />
-              </div>
-            )}
-            <div
-              className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                msg.sender === 'user'
-                  ? 'bg-white border border-gray-100 text-gray-800 rounded-tr-none'
-                  : 'bg-black text-white rounded-tl-none'
-              }`}
-            >
-              <p className="whitespace-pre-wrap">{msg.text}</p>
-            </div>
-            {msg.sender === 'bot' && (
-              <div className="w-8 h-8 rounded-full bg-gold text-black flex items-center justify-center shrink-0 mt-1">
-                <Bot size={14} />
-              </div>
-            )}
+      {/* نافذة الشات */}
+      {isOpen && (
+        <div className="bg-white w-[350px] max-h-[520px] rounded-xl shadow-2xl flex flex-col overflow-hidden border border-gray-100">
+          {/* راس النافذة */}
+          <div className="bg-black text-white p-4 flex justify-between items-center">
+            <h3 className="font-bold">مساعدة المتجر 🤍</h3>
+            <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white">
+              ✕
+            </button>
           </div>
-        ))}
 
-        {isTyping && (
-          <div className="flex gap-3 justify-end">
-            <div className="bg-black text-white p-4 rounded-2xl rounded-tl-none flex items-center gap-2">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-gold rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-gold rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-gold rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-gold text-black flex items-center justify-center shrink-0 mt-1">
-              <Bot size={14} />
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* الردود السريعة */}
-      {messages.length <= 2 && (
-        <div className="px-5 py-3 border-t border-gray-100 bg-white">
-          <p className="text-xs text-gray-500 mb-3 mr-1">اسألني عن:</p>
-          <div className="flex flex-wrap gap-2">
-            {QUICK_REPLIES.map((reply, index) => (
-              <button
+          {/* منطقة عرض الرسائل */}
+          <div className="flex-1 overflow-y-auto p-4 gap-3 flex flex-col bg-gray-50">
+            {messages.map((msg, index) => (
+              <div
                 key={index}
-                onClick={() => handleSend(reply.text)}
-                className="text-xs bg-gray-100 hover:bg-gold hover:text-black text-gray-700 px-3 py-2 rounded-full transition-colors flex items-center gap-1.5"
+                className={`max-w-[80%] p-3 rounded-2xl ${
+                  msg.sender === 'user'
+                    ? 'bg-black text-white rounded-br-none mr-auto'
+                    : 'bg-white shadow-sm border border-gray-100 rounded-bl-none ml-auto'
+                }`}
               >
-                <reply.icon size={12} />
-                {reply.text}
-              </button>
+                {msg.text}
+              </div>
             ))}
+            {isTyping && (
+              <div className="bg-white shadow-sm p-3 rounded-2xl max-w-[80%] animate-pulse">
+                جاري الكتابة...
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* حقل الارسال */}
+          <div className="p-3 border-t bg-white flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+              placeholder="اكتبي سؤالك هنا..."
+              className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-black"
+            />
+            <button
+              onClick={handleSendMessage}
+              className="bg-black text-white px-4 rounded-lg hover:bg-black/80 transition"
+            >
+              ارسال
+            </button>
           </div>
         </div>
       )}
-
-      {/* منطقة الإدخال */}
-      <div className="p-4 border-t border-gray-100 bg-white">
-        <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-2 border border-gray-100 focus-within:border-gold transition-colors">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="اكتب رسالتك هنا..."
-            className="flex-grow bg-transparent outline-none text-sm py-2 px-3 text-right"
-            dir="rtl"
-          />
-          <button
-            onClick={() => handleSend()}
-            disabled={!input.trim() || isTyping}
-            className="w-11 h-11 bg-gold text-black rounded-xl flex items-center justify-center hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isTyping ? <Loader2 size={20} className="animate-spin" /> : <Send size={18} className="rotate-180" />}
-          </button>
-        </div>
-        <p className="text-[10px] text-gray-400 text-center mt-3">
-          نظام مادلين الذكي مدعوم بتقنيات Gemini AI المتطورة ✨
-        </p>
-      </div>
     </div>
-  )}
-</>
-);
-}; 
-export default Chatbot; 
-
+  );
+}
