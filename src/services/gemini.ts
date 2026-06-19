@@ -6,7 +6,7 @@ import { products } from '../data/products'; // استيراد بيانات ال
 const productsContext = products.map(p => `
 - المنتج: ${p.name}
 - الوصف: ${p.description}
-- السعر: ${p.price} ريال
+- السعر: ${p.price} دينار
 - المميزات: ${p.features.join('، ')}
 - طريقة الاستخدام: ${p.usage}
 `).join('\n');
