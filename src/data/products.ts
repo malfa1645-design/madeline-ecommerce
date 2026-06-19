@@ -6,7 +6,8 @@ export const products: Product[] = [
     name: 'سيروم الأظافر - Madeleine',
     price: 8,
     category: 'عناية بالأظافر',
-    image: 'اختر من جهازك' ,
+    // اكتب هنا اسم الصورة كما سميتها في مجلد products
+    image: '/products/nail-serum.jpg', 
     description: 'تركيبة مغذية تقوي الأظافر وتمنحها مظهراً صحياً ولمعاناً طبيعياً.',
     features: [
       'يقوي الأظافر ويقلل التقصف',
@@ -25,7 +26,7 @@ export const products: Product[] = [
     name: 'سيروم الرموش والحواجب - Madeleine',
     price: 8,
     category: 'عناية بالعين',
-    image: 'اختر من جهازك',
+    image: '/products/lash-brow-serum.jpg',
     description: 'سيروم مكثف لتعزيز نمو وكثافة الرموش والحواجب بشكل طبيعي وآمن.',
     features: [
       'يعزز كثافة الحواجب والرموش',
@@ -39,7 +40,7 @@ export const products: Product[] = [
     name: 'جل الحواجب - Madeleine',
     price: 7,
     category: 'مكياج',
-    image:'اختر من جهازك',
+    image: '/products/eyebrow-gel.jpg',
     description: 'تركيبة شفافة تثبت الحواجب وتمنحها مظهراً مرتباً وطبيعياً طوال اليوم.',
     features: [
       'تثبيت قوي يدوم طوال اليوم',
