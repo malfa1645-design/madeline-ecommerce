@@ -11,15 +11,34 @@ import { Product, CartItem, User, Order } from './types';
 import { ChevronRight, ShieldCheck, Truck, RotateCcw, MessageCircle, Phone, Sparkles, Gift, Lock } from 'lucide-react';
 
 function AppContent() {
-  const [dynamicProducts, setDynamicProducts] = useState<Product[]>(initialProducts);
+  // تحميل البيانات المحفوظة عند فتح الموقع
+  const [dynamicProducts, setDynamicProducts] = useState<Product[]>(() => {
+    const saved = localStorage.getItem('madeleine_products');
+    return saved ? JSON.parse(saved) : initialProducts;
+  });
+  
+  const [orders, setOrders] = useState<Order[]>(() => {
+    const saved = localStorage.getItem('madeleine_orders');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [activeCategory, setActiveCategory] = useState<'الكل' | 'عيون' | 'أظافر'>('الكل');
-  const [orders, setOrders] = useState<Order[]>([]);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const { showToast } = useToast();
+
+  // حفظ المنتجات تلقائياً عند أي تعديل (بما في ذلك الصور)
+  useEffect(() => {
+    localStorage.setItem('madeleine_products', JSON.stringify(dynamicProducts));
+  }, [dynamicProducts]);
+
+  // حفظ الطلبات تلقائياً
+  useEffect(() => {
+    localStorage.setItem('madeleine_orders', JSON.stringify(orders));
+  }, [orders]);
 
   // ربط نافذة الطلب
   useEffect(() => {
