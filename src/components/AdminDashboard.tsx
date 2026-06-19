@@ -67,7 +67,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </button>
         </nav>
 
-        <div className="pt-8 border-t border-white/10">
+        <div className="pt-8 border-t border-white/10 space-y-4">
+          <button 
+            onClick={() => {
+              if(confirm('هل تريدين إعادة الموقع لحالته الأصلية؟ سيتم حذف جميع الصور والتعديلات والطلبات.')) {
+                localStorage.clear();
+                window.location.reload();
+              }
+            }}
+            className="w-full text-center py-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 text-xs border border-red-500/20"
+          >
+            إعادة ضبط المصنع
+          </button>
           <button onClick={onClose} className="w-full text-center py-3 bg-white/5 rounded-xl hover:bg-white/10 text-sm">العودة للمتجر</button>
         </div>
       </div>
