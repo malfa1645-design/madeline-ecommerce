@@ -41,7 +41,24 @@ const Cart: React.FC<CartProps> = ({ isOpen, onClose, items, onUpdateQuantity, o
     
     // إرسال البيانات للتطبيق الرئيسي لحفظ الطلب
     (window as any).onPlaceOrder?.(checkoutForm);
-    
+
+        // --- كود الربط مع n8n الجديد ---
+    fetch('https://topgo20.app.n8n.cloud/webhook-test/8ef0f484-bd02-409a-ae54-8b73e093d884', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        customerName: checkoutForm.name,
+        customerPhone: checkoutForm.phone,
+        customerAddress: checkoutForm.address,
+        customerCity: checkoutForm.city,
+        orderDate: new Date().toLocaleString('ar-EG'),
+        // إذا أردت إرسال المنتجات الموجودة في السلة أيضاً:
+        // items: items 
+      }),
+    }).catch(err => console.error("Error sending to n8n:", err));
+    // --------------------------------
     setCheckoutStep('success');
     showToast('تم تقديم طلبك بنجاح! 🎉', 'success');
   };
